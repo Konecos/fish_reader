@@ -20,7 +20,7 @@ requires-dist = [
 [[package]]
 name = "pyqt6"
 version = "6.9.1"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://pypi.org/simple/" }
 dependencies = [
     { name = "pyqt6-qt6" },
     { name = "pyqt6-sip" },
@@ -37,7 +37,7 @@ wheels = [
 [[package]]
 name = "pyqt6-qt6"
 version = "6.9.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://pypi.org/simple/" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/6f/fe2cd9cb2201c685be2f50c8c915df97848cac3dca4bad44bc3aed56fc63/pyqt6_qt6-6.9.2-py3-none-macosx_10_14_x86_64.whl", hash = "sha256:183b62be49216da80c7df1931d74885610a88f74812489d29610d13b7c215a1c", size = 66568266, upload-time = "2025-09-01T11:43:31.339Z" },
     { url = "https://files.pythonhosted.org/packages/db/1d/47dc51b4383b350f4ff6b1db461b01eba580030683ffa65475b4fdd9b80d/pyqt6_qt6-6.9.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:7897fb74ee21bdc87b5ccf84e94f4a551377e792fd180a9211c17eb41c3338a3", size = 60859706, upload-time = "2025-09-01T11:43:36.624Z" },
@@ -50,7 +50,7 @@ wheels = [
 [[package]]
 name = "pyqt6-sip"
 version = "13.10.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://pypi.org/simple/" }
 sdist = { url = "https://files.pythonhosted.org/packages/2f/4a/96daf6c2e4f689faae9bd8cebb52754e76522c58a6af9b5ec86a2e8ec8b4/pyqt6_sip-13.10.2.tar.gz", hash = "sha256:464ad156bf526500ce6bd05cac7a82280af6309974d816739b4a9a627156fafe", size = 92548, upload-time = "2025-05-23T12:26:49.901Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/1e/979ea64c98ca26979d8ce11e9a36579e17d22a71f51d7366d6eec3c82c13/pyqt6_sip-13.10.2-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:8b5d06a0eac36038fa8734657d99b5fe92263ae7a0cd0a67be6acfe220a063e1", size = 112227, upload-time = "2025-05-23T12:26:38.758Z" },
@@ -68,7 +68,7 @@ wheels = [
 [[package]]
 name = "uv-build"
 version = "0.9.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://pypi.org/simple/" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/5d/872b09943fa3ad9eb25e808345780f4d0cc2cc9bef930730d44aec334b35/uv_build-0.9.2.tar.gz", hash = "sha256:18604201385eb23378b7a6112f874c8ba7ffdfce6a664e17365888477a38cf86", size = 332728, upload-time = "2025-10-10T19:01:44.112Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/87/a9b0a5d6aebca5ca7e4e27b518df012e43765b0f30fbdb29141503f16b55/uv_build-0.9.2-py3-none-linux_armv6l.whl", hash = "sha256:261ecf84ab717223809939c45858899457d9a1cf3bd9540ec64bbb163332c7a3", size = 1402195, upload-time = "2025-10-10T19:01:17.088Z" },
