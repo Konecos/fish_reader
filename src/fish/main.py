@@ -23,7 +23,11 @@ def main():
             None, "选择文本文件", "", "Text Files (*.txt)"
         )
         if not file_path:
-            return
+            sys.exit(0)  # Properly exit QApplication when user cancels
+
+        # Add validation to ensure the path is not empty
+        if not file_path.strip():
+            sys.exit(0)
 
         # 添加到书架并设置进度
         book_manager.add_book(file_path)
@@ -31,14 +35,15 @@ def main():
 
     # 创建浮动窗口
     window = FloatingWindow(book_manager)
-    window.show()
-
-    # 设置窗口始终置顶和焦点
+    
+    # 设置窗口始终置顶和焦点 - DO THIS BEFORE SHOWING WINDOW
     window.setWindowFlags(
         Qt.WindowType.WindowStaysOnTopHint |
         Qt.WindowType.FramelessWindowHint |
         Qt.WindowType.Tool
     )
+    
+    window.show()
 
     sys.exit(app.exec())
 
