@@ -9,12 +9,17 @@ class FloatingWindow(QWidget):
         self.book_manager = book_manager
         self.current_line = self.book_manager.get_current_progress()
         self.book_content = self.book_manager.get_book_content()
+        
+        # Variables for dragging functionality
+        self.is_dragging = False
+        self.drag_position = None
 
         self.init_ui()
         self.update_display()
 
     def init_ui(self):
         """初始化UI"""
+        # Remove fixed size to allow dragging
         self.setFixedSize(500, 75)
 
         # 设置半透明背景
@@ -45,6 +50,10 @@ class FloatingWindow(QWidget):
         # 设置窗口属性
         self.setWindowTitle("Fish - 摸鱼阅读器")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
+        # Enable mouse tracking to support dragging
+        self.setMouseTracking(True)
+        self.content_label.setMouseTracking(True)
 
     def update_display(self):
         """更新显示内容"""
@@ -101,8 +110,28 @@ class FloatingWindow(QWidget):
             self.update_display()
 
     def mousePressEvent(self, event):
-        """鼠标点击事件 - 设置焦点"""
-        self.setFocus()
+        """鼠标点击事件 - 设置焦点和开始拖拽"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_dragging = True
+            # Calculate the position relative to the window
+            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+        else:
+            self.setFocus()
+
+    def mouseMoveEvent(self, event):
+        """鼠标移动事件 - 实现窗口拖拽"""
+        if self.is_dragging and event.buttons() == Qt.MouseButton.LeftButton:
+            # Move the window to the new position
+            new_pos = event.globalPosition().toPoint() - self.drag_position
+            self.move(new_pos)
+        event.accept()
+
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件 - 结束拖拽"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_dragging = False
+        event.accept()
 
     def focusInEvent(self, event):
         """获得焦点时的事件"""
@@ -119,7 +148,7 @@ class FloatingWindow(QWidget):
         """失去焦点时的事件"""
         self.content_label.setStyleSheet("""
             QLabel {
-                background-color: rgba(255, 255, 255, 220);
+                background-color: rgba(255, 255, 255, 30);
                 border: 1px solid #4CAF50;
                 color: #333;
                 font-size: 14px;
