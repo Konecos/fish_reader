@@ -21,14 +21,13 @@ FOCUS_OUT_STYLE = """
 """
 
 
-
 class FloatingWindow(QWidget):
     def __init__(self, book_manager):
         super().__init__()
         self.book_manager = book_manager
         self.current_line = self.book_manager.get_current_progress()
         self.book_content = self.book_manager.get_book_content()
-        
+
         # Variables for dragging functionality
         self.is_dragging = False
         self.drag_position = None
@@ -62,7 +61,7 @@ class FloatingWindow(QWidget):
         # 设置窗口属性
         self.setWindowTitle("Fish - 摸鱼阅读器")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        
+
         # Enable mouse tracking to support dragging
         self.setMouseTracking(True)
         self.content_label.setMouseTracking(True)

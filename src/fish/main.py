@@ -35,14 +35,14 @@ def main():
 
     # 创建浮动窗口
     window = FloatingWindow(book_manager)
-    
+
     # 设置窗口始终置顶和焦点 - DO THIS BEFORE SHOWING WINDOW
     window.setWindowFlags(
         Qt.WindowType.WindowStaysOnTopHint |
         Qt.WindowType.FramelessWindowHint |
         Qt.WindowType.Tool
     )
-    
+
     window.show()
 
     sys.exit(app.exec())

@@ -47,7 +47,7 @@ class BookManager:
         """将书籍添加到书架"""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File does not exist: {file_path}")
-        
+
         if file_path not in self.bookshelf:
             self.bookshelf[file_path] = {
                 "progress": 0,
@@ -59,7 +59,7 @@ class BookManager:
         """设置当前书籍"""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File does not exist: {file_path}")
-        
+
         self.current_book_path = file_path
         self.bookshelf["current_book"] = file_path
         self._save_bookshelf()
@@ -67,27 +67,27 @@ class BookManager:
     def get_current_progress(self) -> int:
         """获取当前进度"""
         # Validate that the current book path exists in bookshelf and file exists
-        if (self.current_book_path and 
-            self.current_book_path in self.bookshelf and 
-            os.path.exists(self.current_book_path)):
+        if (self.current_book_path and
+                self.current_book_path in self.bookshelf and
+                os.path.exists(self.current_book_path)):
             return self.bookshelf[self.current_book_path].get("progress", 0)
         return 0
 
     def update_progress(self, line_number: int):
         """更新阅读进度"""
         # Validate that the current book path exists in bookshelf and file exists
-        if (self.current_book_path and 
-            self.current_book_path in self.bookshelf and 
-            os.path.exists(self.current_book_path)):
+        if (self.current_book_path and
+                self.current_book_path in self.bookshelf and
+                os.path.exists(self.current_book_path)):
             self.bookshelf[self.current_book_path]["progress"] = line_number
             self._save_bookshelf()
 
     def get_total_lines(self) -> int:
         """获取总行数"""
         # Validate that the current book path exists in bookshelf and file exists
-        if (self.current_book_path and 
-            self.current_book_path in self.bookshelf and 
-            os.path.exists(self.current_book_path)):
+        if (self.current_book_path and
+                self.current_book_path in self.bookshelf and
+                os.path.exists(self.current_book_path)):
             book_info = self.bookshelf[self.current_book_path]
             if "total_lines" in book_info:
                 return book_info["total_lines"]
@@ -99,7 +99,7 @@ class BookManager:
         """统计文件行数"""
         if not os.path.exists(file_path):
             return 0
-            
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 return sum(1 for _ in f)
@@ -115,7 +115,7 @@ class BookManager:
         # Check if file exists before attempting to read
         if not os.path.exists(self.current_book_path):
             return [f"文件不存在: {self.current_book_path}"]
-        
+
         # Optional: Check file size to prevent loading extremely large files
         try:
             file_size = os.path.getsize(self.current_book_path)
@@ -146,7 +146,7 @@ class BookManager:
         # Handle empty lines
         if not line.strip():
             return []
-        
+
         words = line.split()
         chunks = []
         current_chunk = []
