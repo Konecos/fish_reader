@@ -143,82 +143,97 @@ class BookManager:
             return [f"读取文件错误: {str(e)}"]
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
-        """将长行分割为适合显示的段落：每个段落最多两句"话"，"话"的结尾是[。？！]"""
+        """将长行分割为适合显示的段落：
+        - 每个"段"最多两"行"
+        - 每"行"可以有多个"话"，但总长度不超过max_length/2
+        - "话"的结尾是[。？！]
+        - 行与行之间使用换行符隔开
+        """
         # 处理空行
         if not line.strip():
             return []
         # 按句子分割（以。？！为结束标志）
-        sentences = re.split(r'([。？！])', line)
+        sentences = self._extract_sentences(line)
 
-        # 重新组合句子和标点符号
-        combined_sentences = []
-        i = 0
-        while i < len(sentences):
-            if i + 1 < len(sentences) and sentences[i + 1] in '。？！':
-                # 将句子内容和标点符号合并
-                combined_sentences.append(sentences[i] + sentences[i + 1])
-                i += 2
-            else:
-                # 处理没有标点符号结尾的情况
-                if sentences[i].strip():
-                    combined_sentences.append(sentences[i])
-                i += 1
-
-        # 过滤空句子
-        combined_sentences = [s for s in combined_sentences if s.strip()]
-
-        if not combined_sentences:
+        if not sentences:
             return []
+        # 每行最大长度
+        max_line_length = max_length // 2
 
-        # 组合句子成段落（每段最多两句）
-        paragraphs = []
-        current_paragraph = []
+        # 先将句子组织成行
+        lines = self._group_sentences_into_lines(sentences, max_line_length)
 
-        for sentence in combined_sentences:
-            # 如果当前段落已经有两句，或者添加新句子会超长，则开始新段落
-            if (len(current_paragraph) >= 2 or
-                    (current_paragraph and len(''.join(current_paragraph) + sentence) > max_length)):
-                paragraphs.append(''.join(current_paragraph))
-                current_paragraph = [sentence]
-            elif len(sentence) > max_length:
-                # 单个句子就超过最大长度的情况
-                if current_paragraph:
-                    paragraphs.append(''.join(current_paragraph))
-                # 对超长句子进行强制分割
-                paragraphs.extend(self._force_split_long_sentence(sentence, max_length))
-                current_paragraph = []
+        # 再将行组织成段（每段最多两行）
+        paragraphs = self._group_lines_into_paragraphs(lines)
+
+        return paragraphs
+
+    def _extract_sentences(self, text: str) -> List[str]:
+        """提取句子"""
+        # 使用正则表达式分割句子
+        sentences = re.findall(r'[^。？！]*[。？！]?', text)
+        # 清理和过滤句子
+        cleaned_sentences = []
+        for sentence in sentences:
+            if sentence.strip() or any(char in sentence for char in '。？！'):
+                cleaned_sentences.append(sentence)
+        return cleaned_sentences
+
+    def _group_sentences_into_lines(self, sentences: List[str], max_line_length: int) -> List[str]:
+        """将句子组织成行"""
+        lines = []
+        current_line = []
+        current_length = 0
+
+        for sentence in sentences:
+            sentence_len = len(sentence)
+
+            # 如果单个句子就超长，需要特殊处理
+            if sentence_len > max_line_length:
+                # 先保存当前行（如果有的话）
+                if current_line:
+                    lines.append(''.join(current_line))
+                    current_line = []
+                    current_length = 0
+
+                # 强制分割超长句子
+                forced_lines = self._force_split_long_sentence(sentence, max_line_length)
+                lines.extend(forced_lines)
             else:
-                current_paragraph.append(sentence)
+                # 检查是否能加入当前行
+                new_length = current_length + sentence_len
+                if new_length <= max_line_length:
+                    current_line.append(sentence)
+                    current_length = new_length
+                else:
+                    # 开始新行
+                    if current_line:
+                        lines.append(''.join(current_line))
+                    current_line = [sentence]
+                    current_length = sentence_len
 
-        # 添加最后一个段落
-        if current_paragraph:
-            paragraphs.append(''.join(current_paragraph))
+        # 添加最后一行
+        if current_line:
+            lines.append(''.join(current_line))
 
-        # 对每个段落再检查长度，必要时进一步分割
-        final_paragraphs = []
-        for paragraph in paragraphs:
-            if len(paragraph) <= max_length:
-                final_paragraphs.append(paragraph)
-            else:
-                # 如果段落仍然超长，按词语分割
-                final_paragraphs.extend(self._split_by_words(paragraph, max_length))
+        return lines
 
-        return final_paragraphs
-
-    def _force_split_long_sentence(self, sentence: str, max_length: int) -> List[str]:
+    def _force_split_long_sentence(self, sentence: str, max_line_length: int) -> List[str]:
         """强制分割超长句子"""
-        if len(sentence) <= max_length:
+        if len(sentence) <= max_line_length:
             return [sentence]
 
         result = []
         start = 0
 
         while start < len(sentence):
-            end = min(start + max_length, len(sentence))
+            # 尝试找到合适的分割点
+            end = min(start + max_line_length, len(sentence))
+
             if end < len(sentence):
-                # 寻找最近的合适分割点（标点符号或空格）
+                # 寻找最近的合适分割点（标点符号）
                 split_point = end
-                for i in range(end - 1, start, -1):
+                for i in range(end - 1, start + max_line_length // 3, -1):  # 至少保留1/3长度
                     if sentence[i] in '，；：、':
                         split_point = i + 1
                         break
@@ -233,31 +248,20 @@ class BookManager:
 
         return result
 
-    def _split_by_words(self, text: str, max_length: int) -> List[str]:
-        """按词语分割文本"""
-        if len(text) <= max_length:
-            return [text]
+    def _group_lines_into_paragraphs(self, lines: List[str]) -> List[str]:
+        """将行组织成段（每段最多两行）"""
+        paragraphs = []
+        i = 0
 
-        words = text.split()
-        chunks = []
-        current_chunk = []
-
-        for word in words:
-            test_chunk = current_chunk + [word]
-            chunk_str = ''.join(test_chunk)
-            if len(chunk_str) <= max_length:
-                current_chunk = test_chunk
+        while i < len(lines):
+            if i + 1 < len(lines):
+                # 两行组成一段
+                paragraph = lines[i] + '\n' + lines[i + 1]
+                paragraphs.append(paragraph)
+                i += 2
             else:
-                if current_chunk:
-                    chunks.append(''.join(current_chunk))
-                # 如果单个词就超长，强制分割
-                if len(word) > max_length:
-                    chunks.extend(self._force_split_long_sentence(word, max_length))
-                    current_chunk = []
-                else:
-                    current_chunk = [word]
+                # 最后一行单独成段
+                paragraphs.append(lines[i])
+                i += 1
 
-        if current_chunk:
-            chunks.append(''.join(current_chunk))
-
-        return chunks
+        return paragraphs
