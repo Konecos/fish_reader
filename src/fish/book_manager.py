@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import logging
@@ -142,24 +143,121 @@ class BookManager:
             return [f"读取文件错误: {str(e)}"]
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
-        """将长行分割为适合显示的段落"""
-        # Handle empty lines
+        """将长行分割为适合显示的段落：每个段落最多两句"话"，"话"的结尾是[。？！]"""
+        # 处理空行
         if not line.strip():
             return []
+        # 按句子分割（以。？！为结束标志）
+        sentences = re.split(r'([。？！])', line)
 
-        words = line.split()
+        # 重新组合句子和标点符号
+        combined_sentences = []
+        i = 0
+        while i < len(sentences):
+            if i + 1 < len(sentences) and sentences[i + 1] in '。？！':
+                # 将句子内容和标点符号合并
+                combined_sentences.append(sentences[i] + sentences[i + 1])
+                i += 2
+            else:
+                # 处理没有标点符号结尾的情况
+                if sentences[i].strip():
+                    combined_sentences.append(sentences[i])
+                i += 1
+
+        # 过滤空句子
+        combined_sentences = [s for s in combined_sentences if s.strip()]
+
+        if not combined_sentences:
+            return []
+
+        # 组合句子成段落（每段最多两句）
+        paragraphs = []
+        current_paragraph = []
+
+        for sentence in combined_sentences:
+            # 如果当前段落已经有两句，或者添加新句子会超长，则开始新段落
+            if (len(current_paragraph) >= 2 or
+                    (current_paragraph and len(''.join(current_paragraph) + sentence) > max_length)):
+                paragraphs.append(''.join(current_paragraph))
+                current_paragraph = [sentence]
+            elif len(sentence) > max_length:
+                # 单个句子就超过最大长度的情况
+                if current_paragraph:
+                    paragraphs.append(''.join(current_paragraph))
+                # 对超长句子进行强制分割
+                paragraphs.extend(self._force_split_long_sentence(sentence, max_length))
+                current_paragraph = []
+            else:
+                current_paragraph.append(sentence)
+
+        # 添加最后一个段落
+        if current_paragraph:
+            paragraphs.append(''.join(current_paragraph))
+
+        # 对每个段落再检查长度，必要时进一步分割
+        final_paragraphs = []
+        for paragraph in paragraphs:
+            if len(paragraph) <= max_length:
+                final_paragraphs.append(paragraph)
+            else:
+                # 如果段落仍然超长，按词语分割
+                final_paragraphs.extend(self._split_by_words(paragraph, max_length))
+
+        return final_paragraphs
+
+    def _force_split_long_sentence(self, sentence: str, max_length: int) -> List[str]:
+        """强制分割超长句子"""
+        if len(sentence) <= max_length:
+            return [sentence]
+
+        result = []
+        start = 0
+
+        while start < len(sentence):
+            end = min(start + max_length, len(sentence))
+            if end < len(sentence):
+                # 寻找最近的合适分割点（标点符号或空格）
+                split_point = end
+                for i in range(end - 1, start, -1):
+                    if sentence[i] in '，；：、':
+                        split_point = i + 1
+                        break
+                    elif sentence[i] in ' \t':
+                        split_point = i
+                        break
+                result.append(sentence[start:split_point])
+                start = split_point
+            else:
+                result.append(sentence[start:end])
+                break
+
+        return result
+
+    def _split_by_words(self, text: str, max_length: int) -> List[str]:
+        """按词语分割文本"""
+        if len(text) <= max_length:
+            return [text]
+
+        words = text.split()
         chunks = []
         current_chunk = []
 
         for word in words:
-            if len(' '.join(current_chunk + [word])) <= max_length:
-                current_chunk.append(word)
+            test_chunk = current_chunk + [word]
+            chunk_str = ''.join(test_chunk)
+            if len(chunk_str) <= max_length:
+                current_chunk = test_chunk
             else:
                 if current_chunk:
-                    chunks.append(' '.join(current_chunk))
-                current_chunk = [word]
+                    chunks.append(''.join(current_chunk))
+                # 如果单个词就超长，强制分割
+                if len(word) > max_length:
+                    chunks.extend(self._force_split_long_sentence(word, max_length))
+                    current_chunk = []
+                else:
+                    current_chunk = [word]
 
         if current_chunk:
-            chunks.append(' '.join(current_chunk))
+            chunks.append(''.join(current_chunk))
 
         return chunks
