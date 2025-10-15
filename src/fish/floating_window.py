@@ -59,7 +59,7 @@ class FloatingWindow(QWidget):
         self.setLayout(layout)
 
         # 设置窗口属性
-        self.setWindowTitle("Fish - 摸鱼阅读器")
+        self.setWindowTitle("Fish")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # Enable mouse tracking to support dragging
