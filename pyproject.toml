@@ -1,0 +1,16 @@
+[project]
+name = "fish"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "pyqt6>=6.9.1",
+    "uv-build>=0.9.2",
+]
+
+[project.scripts]
+fish = "fish.main:main"
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"

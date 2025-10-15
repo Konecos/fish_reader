@@ -1,0 +1,47 @@
+import sys
+import os
+from pathlib import Path
+from PyQt6.QtWidgets import QApplication, QFileDialog
+from PyQt6.QtCore import Qt
+from .floating_window import FloatingWindow
+from .book_manager import BookManager
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    # 确保AppData目录存在
+    app_data_dir = Path(os.getenv('APPDATA')) / "fish"
+    app_data_dir.mkdir(exist_ok=True)
+
+    # 初始化书架管理器
+    book_manager = BookManager(app_data_dir)
+
+    # 如果没有打开的书，提示选择文件
+    if not book_manager.has_opened_book():
+        file_path, _ = QFileDialog.getOpenFileName(
+            None, "选择文本文件", "", "Text Files (*.txt)"
+        )
+        if not file_path:
+            return
+
+        # 添加到书架并设置进度
+        book_manager.add_book(file_path)
+        book_manager.set_current_book(file_path)
+
+    # 创建浮动窗口
+    window = FloatingWindow(book_manager)
+    window.show()
+
+    # 设置窗口始终置顶和焦点
+    window.setWindowFlags(
+        Qt.WindowType.WindowStaysOnTopHint |
+        Qt.WindowType.FramelessWindowHint |
+        Qt.WindowType.Tool
+    )
+
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
