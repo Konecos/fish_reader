@@ -141,7 +141,7 @@ class BookManager:
         except Exception as e:
             return [f"读取文件错误: {str(e)}"]
 
-    def _split_line(self, line: str, max_length: int = 50) -> List[str]:
+    def _split_line(self, line: str, max_length: int = 66) -> List[str]:
         """将长行分割为适合显示的段落"""
         # Handle empty lines
         if not line.strip():

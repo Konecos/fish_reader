@@ -28,9 +28,7 @@ class FloatingWindow(QWidget):
         self.content_label.setStyleSheet("""
             QLabel {
                 background-color: rgba(255, 255, 255, 220);
-                border: 2px solid #4CAF50;
-                border-radius: 10px;
-                padding: 10px;
+                border: 1px solid #4CAF50;
                 color: #333;
                 font-size: 14px;
             }
@@ -111,9 +109,7 @@ class FloatingWindow(QWidget):
         self.content_label.setStyleSheet("""
             QLabel {
                 background-color: rgba(255, 255, 255, 240);
-                border: 3px solid #2196F3;
-                border-radius: 10px;
-                padding: 10px;
+                border: 2px solid #2196F3;
                 color: #333;
                 font-size: 14px;
             }
@@ -124,9 +120,7 @@ class FloatingWindow(QWidget):
         self.content_label.setStyleSheet("""
             QLabel {
                 background-color: rgba(255, 255, 255, 220);
-                border: 2px solid #4CAF50;
-                border-radius: 10px;
-                padding: 10px;
+                border: 1px solid #4CAF50;
                 color: #333;
                 font-size: 14px;
             }
