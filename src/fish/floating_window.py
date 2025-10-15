@@ -2,6 +2,25 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeyEvent, QFont, QPalette, QColor
 
+FOCUS_IN_STYLE = """
+    QLabel {
+        background-color: rgba(255, 255, 255, 240);
+        border: 2px solid #2196F3;
+        color: #333;
+        font-size: 14px;
+    }
+"""
+
+FOCUS_OUT_STYLE = """
+    QLabel {
+        background-color: rgba(255, 255, 255, 150);
+        border: 1px solid #4CAF50;
+        color: #333;
+        font-size: 14px;
+    }
+"""
+
+
 
 class FloatingWindow(QWidget):
     def __init__(self, book_manager):
@@ -30,14 +49,7 @@ class FloatingWindow(QWidget):
         # 创建显示标签
         self.content_label = QLabel()
         self.content_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.content_label.setStyleSheet("""
-            QLabel {
-                background-color: rgba(255, 255, 255, 220);
-                border: 1px solid #4CAF50;
-                color: #333;
-                font-size: 14px;
-            }
-        """)
+        self.content_label.setStyleSheet(FOCUS_IN_STYLE)
         self.content_label.setWordWrap(True)
 
         # 设置字体
@@ -135,22 +147,8 @@ class FloatingWindow(QWidget):
 
     def focusInEvent(self, event):
         """获得焦点时的事件"""
-        self.content_label.setStyleSheet("""
-            QLabel {
-                background-color: rgba(255, 255, 255, 240);
-                border: 2px solid #2196F3;
-                color: #333;
-                font-size: 14px;
-            }
-        """)
+        self.content_label.setStyleSheet(FOCUS_IN_STYLE)
 
     def focusOutEvent(self, event):
         """失去焦点时的事件"""
-        self.content_label.setStyleSheet("""
-            QLabel {
-                background-color: rgba(255, 255, 255, 30);
-                border: 1px solid #4CAF50;
-                color: #333;
-                font-size: 14px;
-            }
-        """)
+        self.content_label.setStyleSheet(FOCUS_OUT_STYLE)
