@@ -17,7 +17,4 @@ build-backend = "uv_build"
 
 [tool.uv]
 index-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-extra-index-url = [
-    "https://mirrors.aliyun.com/pypi/simple/",
-    "https://pypi.org/simple/"
-]
+
