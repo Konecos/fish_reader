@@ -12,6 +12,7 @@ class BookManager:
         self.bookshelf_file = app_data_dir / "bookshelf.json"
         self.bookshelf = self._load_bookshelf()
         self.current_book_path = self._get_current_book_path()
+        self._needs_save = False
 
     def _load_bookshelf(self) -> Dict:
         """加载书架数据"""
@@ -23,14 +24,6 @@ class BookManager:
                 logging.error(f"Error loading bookshelf file: {e}")
                 return {}
         return {}
-
-    def _save_bookshelf(self):
-        """保存书架数据"""
-        try:
-            with open(self.bookshelf_file, 'w', encoding='utf-8') as f:
-                json.dump(self.bookshelf, f, ensure_ascii=False, indent=2)
-        except (PermissionError, OSError) as e:
-            logging.error(f"Error saving bookshelf file: {e}")
 
     def _get_current_book_path(self) -> Optional[str]:
         """获取当前打开的书籍路径"""
@@ -54,7 +47,7 @@ class BookManager:
                 "progress": 0,
                 "total_lines": self._count_lines(file_path)
             }
-            self._save_bookshelf()
+            self._needs_save = True
 
     def set_current_book(self, file_path: str):
         """设置当前书籍"""
@@ -63,7 +56,7 @@ class BookManager:
 
         self.current_book_path = file_path
         self.bookshelf["current_book"] = file_path
-        self._save_bookshelf()
+        self._needs_save = True
 
     def get_current_progress(self) -> int:
         """获取当前进度"""
@@ -81,7 +74,7 @@ class BookManager:
                 self.current_book_path in self.bookshelf and
                 os.path.exists(self.current_book_path)):
             self.bookshelf[self.current_book_path]["progress"] = line_number
-            self._save_bookshelf()
+            self._needs_save = True
 
     def get_total_lines(self) -> int:
         """获取总行数"""
@@ -107,6 +100,16 @@ class BookManager:
         except (UnicodeDecodeError, PermissionError, OSError) as e:
             logging.error(f"Error counting lines in {file_path}: {e}")
             return 0
+
+    def save(self):
+        """保存书架数据到文件"""
+        if self._needs_save:
+            try:
+                with open(self.bookshelf_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.bookshelf, f, ensure_ascii=False, indent=2)
+                self._needs_save = False
+            except (PermissionError, OSError) as e:
+                logging.error(f"Error saving bookshelf file: {e}")
 
     def get_book_content(self) -> List[str]:
         """获取书籍内容（分页后的）"""
