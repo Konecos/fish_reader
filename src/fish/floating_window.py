@@ -49,7 +49,7 @@ class FloatingWindow(QWidget):
         # Timer to check if window is topmost every 1 second
         self.topmost_timer = QTimer(self)
         self.topmost_timer.timeout.connect(self.check_topmost_status)
-        self.topmost_timer.start(1000)  # 1000ms = 1 second
+        self.topmost_timer.start(500)
 
         self.init_ui()
         self.update_display()
