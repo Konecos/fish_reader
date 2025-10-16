@@ -8,6 +8,8 @@ import logging
 
 class BookManager:
     def __init__(self, app_data_dir: Path):
+        self.line_mapping = {}  # Maps display_line_index -> actual_line_number
+        self.reverse_line_mapping = {}  # Maps actual_line_number -> [display_line_indices]
         self.app_data_dir = app_data_dir
         self.bookshelf_file = app_data_dir / "bookshelf.json"
         self.bookshelf = self._load_bookshelf()
@@ -135,8 +137,7 @@ class BookManager:
 
             # 处理每行内容，进行分页
             formatted_lines = []
-            self.line_mapping = []  # 新增: 用于映射显示行号到实际行号
-            actual_line_number = 0  # 跟踪实际文件行号
+            display_line_index = 0  # Track display line index
 
             for idx, original_line in enumerate(original_lines):
                 actual_line_number = idx + 1  # 实际文件行号从1开始
@@ -148,7 +149,11 @@ class BookManager:
                 split_lines = self._split_line(line)
                 for split_line in split_lines:
                     formatted_lines.append(split_line)
-                    self.line_mapping.append(actual_line_number)
+                    self.line_mapping[display_line_index] = actual_line_number
+                    if actual_line_number not in self.reverse_line_mapping:
+                        self.reverse_line_mapping[actual_line_number] = []
+                    self.reverse_line_mapping[actual_line_number].append(display_line_index)
+                    display_line_index += 1
 
             return formatted_lines
         except Exception as e:
@@ -156,18 +161,12 @@ class BookManager:
 
     def get_actual_line_number(self, display_line_index: int) -> int:
         """根据显示行索引获取实际行号"""
-        if hasattr(self, 'line_mapping') and 0 <= display_line_index < len(self.line_mapping):
-            return self.line_mapping[display_line_index]
-        return -1  # 如果没有映射或索引超出范围
+        return self.line_mapping.get(display_line_index, -1)  # 如果没有映射，返回-1
     
     def get_display_line_index(self, actual_line_number: int) -> int:
         """根据实际行号获取显示行索引"""
-        if hasattr(self, 'line_mapping'):
-            # 找到第一个匹配的实际行号的索引
-            for idx, mapped_line_num in enumerate(self.line_mapping):
-                if mapped_line_num == actual_line_number:
-                    return idx
-        return -1
+        indices = self.reverse_line_mapping.get(actual_line_number, [])
+        return indices[0] if indices else -1
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
         """将长行分割为适合显示的段落：
