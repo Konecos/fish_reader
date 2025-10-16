@@ -20,6 +20,13 @@ FOCUS_OUT_STYLE = """
     }
 """
 
+LINE_NUMBER_STYLE = """
+    QLabel {
+        color: #666;
+        font-size: 12px;
+    }
+"""
+
 
 class FloatingWindow(QWidget):
     def __init__(self, book_manager):
@@ -51,7 +58,7 @@ class FloatingWindow(QWidget):
 
         # 创建显示标签
         self.content_label = QLabel()
-        self.content_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # 左对齐
         self.content_label.setStyleSheet(FOCUS_IN_STYLE)
         self.content_label.setWordWrap(True)
 
@@ -62,6 +69,13 @@ class FloatingWindow(QWidget):
         layout.addWidget(self.content_label)
         self.setLayout(layout)
 
+        # 创建行号标签
+        self.line_number_label = QLabel()
+        self.line_number_label.setStyleSheet(LINE_NUMBER_STYLE)
+        self.line_number_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.line_number_label.setParent(self)
+        self.update_line_number_position()  # 设置初始位置
+        
         # 设置窗口属性
         self.setWindowTitle("Fish")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -70,10 +84,29 @@ class FloatingWindow(QWidget):
         self.setMouseTracking(True)
         self.content_label.setMouseTracking(True)
 
+    def update_line_number_position(self):
+        """更新行号标签位置到右下角"""
+        # 获取窗口大小
+        window_width = self.width()
+        window_height = self.height()
+        
+        # 设置行号标签大小和位置 (距离右边和底部10像素)
+        label_width = 100  # 估算标签宽度
+        label_height = 20  # 估算标签高度
+        x = window_width - label_width - 15
+        y = window_height - label_height - 10
+        
+        self.line_number_label.setGeometry(x, y, label_width, label_height)
+        self.line_number_label.setAlignment(Qt.AlignmentFlag.AlignRight)  # 右对齐
+        
+        # 设置50%透明度
+        self.line_number_label.setWindowOpacity(0.5)
+
     def update_display(self):
         """更新显示内容"""
         if not self.book_content:
             self.content_label.setText("没有可显示的内容")
+            self.line_number_label.setText("")
             return
 
         if 0 <= self.current_line < len(self.book_content):
@@ -81,11 +114,14 @@ class FloatingWindow(QWidget):
             actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
             line_content = self.book_content[self.current_line]
             
-            # 显示行号和内容
+            # 显示内容（不包含行号）
+            self.content_label.setText(line_content)
+            
+            # 显示行号在单独的标签中
             if actual_line_number != -1:
-                self.content_label.setText(f"[{actual_line_number}] {line_content}")
+                self.line_number_label.setText(f"Line {actual_line_number}")
             else:
-                self.content_label.setText(line_content)
+                self.line_number_label.setText("")
                 
             self.book_manager.update_progress(self.current_line)
         elif self.book_content:
@@ -94,10 +130,14 @@ class FloatingWindow(QWidget):
             actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
             line_content = self.book_content[self.current_line]
             
+            # 显示内容（不包含行号）
+            self.content_label.setText(line_content)
+            
+            # 显示行号在单独的标签中
             if actual_line_number != -1:
-                self.content_label.setText(f"[{actual_line_number}] {line_content}")
+                self.line_number_label.setText(f"Line {actual_line_number}")
             else:
-                self.content_label.setText(line_content)
+                self.line_number_label.setText("")
                 
             self.book_manager.update_progress(self.current_line)
 
@@ -114,13 +154,16 @@ class FloatingWindow(QWidget):
                     self.update_display()
                 else:
                     self.content_label.setText(f"未找到第 {target_line} 行")
+                    self.line_number_label.setText("")
                     
             except ValueError:
                 self.content_label.setText("请输入有效的行号")
+                self.line_number_label.setText("")
             
             # Reset after jump attempt
             self.waiting_for_line_number = False
             self.line_number_input = ""
+            self.update_display()  # Restore normal display
         else:
             self.waiting_for_line_number = False
             self.line_number_input = ""
@@ -136,6 +179,7 @@ class FloatingWindow(QWidget):
                 self.line_number_input += event.text()
                 # Update display to show current input
                 self.content_label.setText(f"输入行号: {self.line_number_input}")
+                self.line_number_label.setText("")
             elif event.key() == Qt.Key.Key_Return:  # Enter key to confirm
                 self.jump_to_line()
             elif event.key() == Qt.Key.Key_Escape:  # Escape to cancel
@@ -151,6 +195,7 @@ class FloatingWindow(QWidget):
             self.waiting_for_line_number = True
             self.line_number_input = ""
             self.content_label.setText("输入行号然后按回车 (g + 行号 + Enter)")
+            self.line_number_label.setText("")
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_W):
             self.previous_line()
         elif key in (Qt.Key.Key_Down, Qt.Key.Key_S):
@@ -217,3 +262,8 @@ class FloatingWindow(QWidget):
     def focusOutEvent(self, event):
         """失去焦点时的事件"""
         self.content_label.setStyleSheet(FOCUS_OUT_STYLE)
+
+    def resizeEvent(self, event):
+        """窗口大小改变时更新行号位置"""
+        super().resizeEvent(event)
+        self.update_line_number_position()
