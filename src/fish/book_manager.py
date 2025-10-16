@@ -162,10 +162,17 @@ class BookManager:
     def get_actual_line_number(self, display_line_index: int) -> int:
         """根据显示行索引获取实际行号"""
         return self.line_mapping.get(display_line_index, -1)  # 如果没有映射，返回-1
-    
+
     def get_display_line_index(self, actual_line_number: int) -> int:
         """根据实际行号获取显示行索引"""
-        indices = self.reverse_line_mapping.get(actual_line_number, [])
+        while actual_line_number >= 0:
+            indices = self.reverse_line_mapping.get(actual_line_number, [])
+            if indices:
+                break
+            else:
+                actual_line_number -= 1
+        else:
+            indices = None
         return indices[0] if indices else -1
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
