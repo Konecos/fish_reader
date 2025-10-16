@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QKeyEvent, QFont, QPalette, QColor
 
 FOCUS_IN_STYLE = """
@@ -42,6 +42,14 @@ class FloatingWindow(QWidget):
         # Variable for g key input
         self.waiting_for_line_number = False
         self.line_number_input = ""
+
+        # Track topmost status
+        self.was_topmost_last_check = True
+
+        # Timer to check if window is topmost every 1 second
+        self.topmost_timer = QTimer(self)
+        self.topmost_timer.timeout.connect(self.check_topmost_status)
+        self.topmost_timer.start(1000)  # 1000ms = 1 second
 
         self.init_ui()
         self.update_display()
@@ -267,3 +275,23 @@ class FloatingWindow(QWidget):
         """窗口大小改变时更新行号位置"""
         super().resizeEvent(event)
         self.update_line_number_position()
+
+    def check_topmost_status(self):
+        """检查窗口是否为顶层窗口"""
+        # Check if the window is still on top by checking if it's active and visible
+        is_currently_topmost = self.isActiveWindow() and self.isVisible()
+        
+        # Optional: Log or handle changes in topmost status
+        if is_currently_topmost != self.was_topmost_last_check:
+            # Status changed
+            if is_currently_topmost:
+                # Window became topmost
+                pass  # Could add logic here if needed
+            else:
+                # Window is no longer topmost
+                pass  # Could add logic here if needed
+        
+        self.was_topmost_last_check = is_currently_topmost
+        
+        # Ensure the window stays on top by calling raise_()
+        self.raise_()  # Bring to top without taking focus
