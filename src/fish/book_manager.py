@@ -1,9 +1,9 @@
 import json
+import logging
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import logging
+from typing import Dict, List, Optional
 
 
 class BookManager:

@@ -1,6 +1,6 @@
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QKeyEvent, QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QKeyEvent, QFont, QPalette, QColor
 
 FOCUS_IN_STYLE = """
     QLabel {
@@ -129,7 +129,7 @@ class FloatingWindow(QWidget):
             
             # 显示行号在单独的标签中
             if actual_line_number != -1:
-                self.line_number_label.setText(f"Line {actual_line_number}")
+                self.line_number_label.setText(f"L {actual_line_number}")
             else:
                 self.line_number_label.setText("")
                 
@@ -145,7 +145,7 @@ class FloatingWindow(QWidget):
             
             # 显示行号在单独的标签中
             if actual_line_number != -1:
-                self.line_number_label.setText(f"Line {actual_line_number}")
+                self.line_number_label.setText(f"L {actual_line_number}")
             else:
                 self.line_number_label.setText("")
                 
@@ -185,7 +185,7 @@ class FloatingWindow(QWidget):
         
         # Handle numeric input when waiting for line number
         if self.waiting_for_line_number:
-            if event.key() >= Qt.Key.Key_0 and event.key() <= Qt.Key.Key_9:
+            if Qt.Key.Key_0 <= event.key() <= Qt.Key.Key_9:
                 self.line_number_input += event.text()
                 # Update display to show current input
                 self.content_label.setText(f"输入行号: {self.line_number_input}")
@@ -204,7 +204,7 @@ class FloatingWindow(QWidget):
             # Start waiting for line number input
             self.waiting_for_line_number = True
             self.line_number_input = ""
-            self.content_label.setText("输入行号然后按回车 (g + 行号 + Enter)")
+            self.content_label.setText("输入行号：（然后按回车)")
             self.line_number_label.setText("")
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_W):
             self.previous_line()
