@@ -131,19 +131,43 @@ class BookManager:
 
         try:
             with open(self.current_book_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+                original_lines = f.readlines()
 
             # 处理每行内容，进行分页
             formatted_lines = []
-            for line in lines:
-                line = line.strip()
+            self.line_mapping = []  # 新增: 用于映射显示行号到实际行号
+            actual_line_number = 0  # 跟踪实际文件行号
+
+            for idx, original_line in enumerate(original_lines):
+                actual_line_number = idx + 1  # 实际文件行号从1开始
+                line = original_line.strip()
                 if not line:  # 跳过空行
                     continue
-                formatted_lines.extend(self._split_line(line))
+
+                # 分割长行后，将分割出的每行都映射到原始行号
+                split_lines = self._split_line(line)
+                for split_line in split_lines:
+                    formatted_lines.append(split_line)
+                    self.line_mapping.append(actual_line_number)
 
             return formatted_lines
         except Exception as e:
             return [f"读取文件错误: {str(e)}"]
+
+    def get_actual_line_number(self, display_line_index: int) -> int:
+        """根据显示行索引获取实际行号"""
+        if hasattr(self, 'line_mapping') and 0 <= display_line_index < len(self.line_mapping):
+            return self.line_mapping[display_line_index]
+        return -1  # 如果没有映射或索引超出范围
+    
+    def get_display_line_index(self, actual_line_number: int) -> int:
+        """根据实际行号获取显示行索引"""
+        if hasattr(self, 'line_mapping'):
+            # 找到第一个匹配的实际行号的索引
+            for idx, mapped_line_num in enumerate(self.line_mapping):
+                if mapped_line_num == actual_line_number:
+                    return idx
+        return -1
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
         """将长行分割为适合显示的段落：

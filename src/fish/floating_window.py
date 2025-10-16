@@ -31,6 +31,10 @@ class FloatingWindow(QWidget):
         # Variables for dragging functionality
         self.is_dragging = False
         self.drag_position = None
+        
+        # Variable for g key input
+        self.waiting_for_line_number = False
+        self.line_number_input = ""
 
         self.init_ui()
         self.update_display()
@@ -73,19 +77,81 @@ class FloatingWindow(QWidget):
             return
 
         if 0 <= self.current_line < len(self.book_content):
-            self.content_label.setText(self.book_content[self.current_line])
+            # 获取实际行号
+            actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
+            line_content = self.book_content[self.current_line]
+            
+            # 显示行号和内容
+            if actual_line_number != -1:
+                self.content_label.setText(f"[{actual_line_number}] {line_content}")
+            else:
+                self.content_label.setText(line_content)
+                
             self.book_manager.update_progress(self.current_line)
         elif self.book_content:
             # 超出范围时重置到开头或末尾
             self.current_line = max(0, min(self.current_line, len(self.book_content) - 1))
-            self.content_label.setText(self.book_content[self.current_line])
+            actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
+            line_content = self.book_content[self.current_line]
+            
+            if actual_line_number != -1:
+                self.content_label.setText(f"[{actual_line_number}] {line_content}")
+            else:
+                self.content_label.setText(line_content)
+                
             self.book_manager.update_progress(self.current_line)
+
+    def jump_to_line(self):
+        """跳转到指定行"""
+        if self.waiting_for_line_number and self.line_number_input:
+            try:
+                target_line = int(self.line_number_input)
+                # Convert actual line number to display index
+                display_index = self.book_manager.get_display_line_index(target_line)
+                
+                if display_index != -1:
+                    self.current_line = display_index
+                    self.update_display()
+                else:
+                    self.content_label.setText(f"未找到第 {target_line} 行")
+                    
+            except ValueError:
+                self.content_label.setText("请输入有效的行号")
+            
+            # Reset after jump attempt
+            self.waiting_for_line_number = False
+            self.line_number_input = ""
+        else:
+            self.waiting_for_line_number = False
+            self.line_number_input = ""
+            self.update_display()
 
     def keyPressEvent(self, event: QKeyEvent):
         """按键事件处理"""
         key = event.key()
+        
+        # Handle numeric input when waiting for line number
+        if self.waiting_for_line_number:
+            if event.key() >= Qt.Key.Key_0 and event.key() <= Qt.Key.Key_9:
+                self.line_number_input += event.text()
+                # Update display to show current input
+                self.content_label.setText(f"输入行号: {self.line_number_input}")
+            elif event.key() == Qt.Key.Key_Return:  # Enter key to confirm
+                self.jump_to_line()
+            elif event.key() == Qt.Key.Key_Escape:  # Escape to cancel
+                self.waiting_for_line_number = False
+                self.line_number_input = ""
+                self.update_display()
+            else:
+                super().keyPressEvent(event)
+            return
 
-        if key in (Qt.Key.Key_Up, Qt.Key.Key_W):
+        if key == Qt.Key.Key_G:
+            # Start waiting for line number input
+            self.waiting_for_line_number = True
+            self.line_number_input = ""
+            self.content_label.setText("输入行号然后按回车 (g + 行号 + Enter)")
+        elif key in (Qt.Key.Key_Up, Qt.Key.Key_W):
             self.previous_line()
         elif key in (Qt.Key.Key_Down, Qt.Key.Key_S):
             self.next_line()
@@ -100,7 +166,7 @@ class FloatingWindow(QWidget):
             return
 
         new_line = self.current_line - 1
-        while new_line >= 0 and (not self.book_content[new_line].strip()):
+        while new_line >= 0 and not self.book_content[new_line].strip():
             new_line -= 1
 
         if new_line >= 0:
@@ -113,7 +179,7 @@ class FloatingWindow(QWidget):
             return
 
         new_line = self.current_line + 1
-        while new_line < len(self.book_content) and (not self.book_content[new_line].strip()):
+        while new_line < len(self.book_content) and not self.book_content[new_line].strip():
             new_line += 1
 
         if new_line < len(self.book_content):
