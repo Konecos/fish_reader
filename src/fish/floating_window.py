@@ -13,10 +13,12 @@ FOCUS_IN_STYLE = """
 
 FOCUS_OUT_STYLE = """
     QLabel {
-        background-color: rgba(255, 255, 255, 150);
-        border: 1px solid #4CAF50;
-        color: #333;
+        background-color: rgba(255, 255, 255, 26);
+        border: 1px solid #4CAF5022;
+        color: #33333322;
+        opacity: 0.1;
         font-size: 14px;
+        
     }
 """
 
