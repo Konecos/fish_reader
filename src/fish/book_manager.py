@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from .config import bookshelf, config
+
 # Set up module-specific logger
 logger = logging.getLogger(__name__)
 
@@ -14,25 +16,9 @@ class BookManager:
         self.line_mapping = {}  # Maps display_line_index -> actual_line_number
         self.reverse_line_mapping = {}  # Maps actual_line_number -> [display_line_indices]
         self.app_data_dir = app_data_dir
-        self.bookshelf_file = app_data_dir / "bookshelf.json"
-        self.bookshelf = self._load_bookshelf()
+        self.bookshelf = bookshelf
         self.current_book_path = self._get_current_book_path()
         self._needs_save = False
-
-    def _load_bookshelf(self) -> Dict:
-        """加载书架数据"""
-        logger.info("Loading bookshelf data from file")
-        if self.bookshelf_file.exists():
-            try:
-                with open(self.bookshelf_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    logger.info(f"Bookshelf loaded successfully with {len(data)} entries")
-                    return data
-            except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
-                logger.error(f"Error loading bookshelf file: {e}")
-                return {}
-        logger.info("Bookshelf file does not exist, returning empty bookshelf")
-        return {}
 
     def _get_current_book_path(self) -> Optional[str]:
         """获取当前打开的书籍路径"""
@@ -101,7 +87,9 @@ class BookManager:
                 self.current_book_path in self.bookshelf and
                 os.path.exists(self.current_book_path)):
             self.bookshelf[self.current_book_path]["progress"] = line_number
-            self._needs_save = True
+            # Only mark for save if auto_save_progress is enabled
+            if config.get('auto_save_progress', True):
+                self._needs_save = True
             logger.info(f"Progress updated to line: {line_number} for book: {self.current_book_path}")
         else:
             logger.warning(f"Cannot update progress, current book invalid: {self.current_book_path}")
@@ -144,17 +132,19 @@ class BookManager:
 
     def save(self):
         """保存书架数据到文件"""
-        if self._needs_save:
-            logger.info(f"Saving bookshelf data to: {self.bookshelf_file}")
+        if self._needs_save and config.get('auto_save_progress', True):
+            logger.info(f"Saving bookshelf data...")
             try:
-                with open(self.bookshelf_file, 'w', encoding='utf-8') as f:
-                    json.dump(self.bookshelf, f, ensure_ascii=False, indent=2)
+                self.bookshelf.save()
                 self._needs_save = False
                 logger.info("Bookshelf data saved successfully")
             except (PermissionError, OSError) as e:
-                logger.error(f"Error saving bookshelf file: {e}")
+                logger.error(f"Error saving bookshelf: {e}")
         else:
-            logger.debug("No changes to save, bookshelf data unchanged")
+            if not config.get('auto_save_progress', True):
+                logger.info("Auto-save progress is disabled in config")
+            else:
+                logger.debug("No changes to save, bookshelf data unchanged")
 
     def get_book_content(self) -> List[str]:
         """获取书籍内容（分页后的）"""

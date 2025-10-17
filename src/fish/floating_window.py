@@ -3,28 +3,37 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QKeyEvent, QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 
+from .config import config
+from .theme_manager import get_theme_colors
+
 # Set up module-specific logger
 logger = logging.getLogger(__name__)
 
-FOCUS_IN_STYLE = """
-    QLabel {
-        background-color: rgba(255, 255, 255, 240);
-        border: 2px solid #2196F3;
-        color: #333;
-        font-size: 14px;
-    }
-"""
+def get_focus_in_style():
+    """Generate focus-in style based on configuration and theme"""
+    colors = get_theme_colors()
+    return f"""
+        QLabel {{
+            background-color: {colors['bg_color']};
+            border: 2px solid {colors['border_color']};
+            color: {colors['text_color']};
+            font-size: {config.get('font_size', 10) + 4}px;
+        }}
+    """
 
-FOCUS_OUT_STYLE = """
-    QLabel {
-        background-color: rgba(255, 255, 255, 26);
-        border: 1px solid #4CAF5022;
-        color: #33333322;
-        opacity: 0.1;
-        font-size: 14px;
-        
-    }
-"""
+def get_focus_out_style():
+    """Generate focus-out style based on configuration and theme"""
+    colors = get_theme_colors()
+    return f"""
+        QLabel {{
+            background-color: {colors['blur_bg_color']};
+            border: 1px solid #4CAF5022;
+            color: {colors['blur_text_color']};
+            opacity: {config.get('opacity_when_blurred', 0.1)};
+            font-size: {config.get('font_size', 10) + 4}px;
+            
+        }}
+    """
 
 LINE_NUMBER_STYLE = """
     QLabel {
@@ -65,8 +74,16 @@ class FloatingWindow(QWidget):
 
     def init_ui(self):
         """初始化UI"""
-        # Remove fixed size to allow dragging
-        self.setFixedSize(500, 75)
+        # Set window size from config
+        width = config.get('window_width', 500)
+        height = config.get('window_height', 75)
+        self.setFixedSize(width, height)
+
+        # Set window position from config if available
+        pos_x = config.get('window_x')
+        pos_y = config.get('window_y')
+        if pos_x is not None and pos_y is not None:
+            self.move(pos_x, pos_y)
 
         # 设置半透明背景
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -76,11 +93,13 @@ class FloatingWindow(QWidget):
         # 创建显示标签
         self.content_label = QLabel()
         self.content_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # 左对齐
-        self.content_label.setStyleSheet(FOCUS_IN_STYLE)
+        self.content_label.setStyleSheet(get_focus_in_style())
         self.content_label.setWordWrap(True)
 
-        # 设置字体
-        font = QFont("Microsoft YaHei", 10)
+        # 设置字体 from config
+        font_family = config.get('font_family', 'Microsoft YaHei')
+        font_size = config.get('font_size', 10)
+        font = QFont(font_family, font_size)
         self.content_label.setFont(font)
 
         layout.addWidget(self.content_label)
@@ -306,23 +325,39 @@ class FloatingWindow(QWidget):
         if event.button() == Qt.MouseButton.LeftButton:
             if self.is_dragging:
                 logger.debug("Mouse drag ended")
+                # Save the new position to config
+                pos = self.pos()
+                config['window_x'] = pos.x()
+                config['window_y'] = pos.y()
+                config.save()
             self.is_dragging = False
         event.accept()
+
+    def update_theme(self):
+        """Update the theme of the window based on current configuration"""
+        if self.hasFocus():
+            self.content_label.setStyleSheet(get_focus_in_style())
+        else:
+            self.content_label.setStyleSheet(get_focus_out_style())
 
     def focusInEvent(self, event):
         """获得焦点时的事件"""
         logger.debug("Window gained focus")
-        self.content_label.setStyleSheet(FOCUS_IN_STYLE)
+        self.content_label.setStyleSheet(get_focus_in_style())
 
     def focusOutEvent(self, event):
         """失去焦点时的事件"""
         logger.debug("Window lost focus")
-        self.content_label.setStyleSheet(FOCUS_OUT_STYLE)
+        self.content_label.setStyleSheet(get_focus_out_style())
 
     def resizeEvent(self, event):
         """窗口大小改变时更新行号位置"""
         super().resizeEvent(event)
         self.update_line_number_position()
+        # Save the new size to config
+        config['window_width'] = self.width()
+        config['window_height'] = self.height()
+        config.save()
 
     def reselect_book(self):
         """重新选择要阅读的书籍"""
