@@ -327,22 +327,29 @@ class FloatingWindow(QWidget):
     def reselect_book(self):
         """重新选择要阅读的书籍"""
         logger.info("Re-selecting book initiated by user")
-        from PyQt6.QtWidgets import QFileDialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            None, "选择文本文件", "", "Text Files (*.txt)"
-        )
-        if file_path:
-            logger.info(f"User selected new book: {file_path}")
-            # Add the new book to bookshelf and set it as current
-            self.book_manager.add_book(file_path)
-            self.book_manager.set_current_book(file_path)
-            # Update the UI with new content
-            self.book_content = self.book_manager.get_book_content()
-            self.current_line = self.book_manager.get_current_progress()
+        try:
+            from PyQt6.QtWidgets import QFileDialog
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "选择文本文件", "", "Text Files (*.txt)"
+            )
+            if file_path:
+                logger.info(f"User selected new book: {file_path}")
+                # Add the new book to bookshelf and set it as current
+                self.book_manager.add_book(file_path)
+                self.book_manager.set_current_book(file_path)
+                # Update the UI with new content
+                self.book_content = self.book_manager.get_book_content()
+                self.current_line = self.book_manager.get_current_progress()
+                self.update_display()
+                logger.info(f"Book changed successfully to: {file_path}")
+            else:
+                logger.info("User cancelled book re-selection")
+                # Ensure the display updates properly even after cancelling
+                self.update_display()
+        except Exception as e:
+            logger.error(f"Error during book reselection: {e}")
+            # Ensure the display updates properly even if there's an error
             self.update_display()
-            logger.info(f"Book changed successfully to: {file_path}")
-        else:
-            logger.info("User cancelled book re-selection")
 
     def check_topmost_status(self):
         """检查窗口是否为顶层窗口"""
