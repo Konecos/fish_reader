@@ -219,125 +219,102 @@ class BookManager:
         return indices[0] if indices else -1
 
     def _split_line(self, line: str, max_length: int = 66) -> List[str]:
-        """将长行分割为适合显示的段落：
-        - 每个"段"最多两"行"
-        - 每"行"可以有多个"话"，但总长度不超过max_length/2
-        - "话"的结尾是[。？！]
-        - 行与行之间使用换行符隔开
-        """
-        # 处理空行
+        """将长行分割为适合显示的段落"""
         if not line.strip():
             return []
-        # 按句子分割（以。？！为结束标志）
-        sentences = self._extract_sentences(line)
 
+        # 提取句子并组织成段落
+        sentences = self._extract_sentences(line)
         if not sentences:
             return []
-        # 每行最大长度
-        max_line_length = max_length // 2
 
-        # 先将句子组织成行
-        lines = self._group_sentences_into_lines(sentences, max_line_length)
-
-        # 再将行组织成段（每段最多两行）
-        paragraphs = self._group_lines_into_paragraphs(lines)
-
-        return paragraphs
+        lines = self._organize_into_lines(sentences, max_length // 2)
+        return self._pair_lines(lines)
 
     def _extract_sentences(self, text: str) -> List[str]:
-        """提取句子"""
-        # 使用正则表达式分割句子
-        sentences = re.findall(r'[^。？！]*[。？！]?', text)
-        # 清理和过滤句子
-        cleaned_sentences = []
-        for sentence in sentences:
-            if sentence.strip() or any(char in sentence for char in '。？！'):
-                cleaned_sentences.append(sentence)
-        return cleaned_sentences
+        """提取句子，支持标点符号后的引号"""
+        # 匹配句子：内容 + 标点(。？！) + 可选引号("")
+        pattern = r'[^。？！]+[。？！]["”]?'
+        sentences = re.findall(pattern, text)
 
-    def _group_sentences_into_lines(self, sentences: List[str], max_line_length: int) -> List[str]:
-        """将句子组织成行"""
+        # 处理末尾没有标点的文本
+        if sentences:
+            matched_length = sum(len(s) for s in sentences)
+            if matched_length < len(text):
+                remaining = text[matched_length:].strip()
+                if remaining:
+                    sentences.append(remaining)
+        else:
+            # 没有找到标点，返回整个文本
+            sentences = [text] if text.strip() else []
+
+        return sentences
+
+    def _organize_into_lines(self, sentences: List[str], max_len: int) -> List[str]:
+        """将句子组织成行，每行不超过max_len"""
         lines = []
-        current_line = []
-        current_length = 0
+        current = []
+        current_len = 0
 
         for sentence in sentences:
-            sentence_len = len(sentence)
+            sen_len = len(sentence)
 
-            # 如果单个句子就超长，需要特殊处理
-            if sentence_len > max_line_length:
-                # 先保存当前行（如果有的话）
-                if current_line:
-                    lines.append(''.join(current_line))
-                    current_line = []
-                    current_length = 0
-
-                # 强制分割超长句子
-                forced_lines = self._force_split_long_sentence(sentence, max_line_length)
-                lines.extend(forced_lines)
+            # 单句超长：强制分割
+            if sen_len > max_len:
+                if current:
+                    lines.append(''.join(current))
+                    current, current_len = [], 0
+                lines.extend(self._smart_split(sentence, max_len))
+            # 加入当前行会超长：开始新行
+            elif current_len + sen_len > max_len:
+                if current:
+                    lines.append(''.join(current))
+                current, current_len = [sentence], sen_len
+            # 正常加入当前行
             else:
-                # 检查是否能加入当前行
-                new_length = current_length + sentence_len
-                if new_length <= max_line_length:
-                    current_line.append(sentence)
-                    current_length = new_length
-                else:
-                    # 开始新行
-                    if current_line:
-                        lines.append(''.join(current_line))
-                    current_line = [sentence]
-                    current_length = sentence_len
+                current.append(sentence)
+                current_len += sen_len
 
-        # 添加最后一行
-        if current_line:
-            lines.append(''.join(current_line))
+        if current:
+            lines.append(''.join(current))
 
         return lines
 
-    def _force_split_long_sentence(self, sentence: str, max_line_length: int) -> List[str]:
-        """强制分割超长句子"""
-        if len(sentence) <= max_line_length:
-            return [sentence]
+    def _smart_split(self, text: str, max_len: int) -> List[str]:
+        """智能分割超长文本，优先在标点处分割"""
+        if len(text) <= max_len:
+            return [text]
 
         result = []
         start = 0
 
-        while start < len(sentence):
-            # 尝试找到合适的分割点
-            end = min(start + max_line_length, len(sentence))
+        while start < len(text):
+            end = min(start + max_len, len(text))
 
-            if end < len(sentence):
-                # 寻找最近的合适分割点（标点符号）
-                split_point = end
-                for i in range(end - 1, start + max_line_length // 3, -1):  # 至少保留1/3长度
-                    if sentence[i] in '，；：、':
-                        split_point = i + 1
+            if end < len(text):
+                # 寻找最佳分割点（标点 > 空格）
+                split_pos = end
+                # 在后1/3范围内查找标点
+                search_start = start + max_len * 2 // 3
+
+                for i in range(end - 1, search_start - 1, -1):
+                    if text[i] in '，；：、。？！':
+                        split_pos = i + 1
                         break
-                    elif sentence[i] in ' \t':
-                        split_point = i
-                        break
-                result.append(sentence[start:split_point])
-                start = split_point
+                    elif text[i] in ' \t' and split_pos == end:
+                        split_pos = i
+
+                result.append(text[start:split_pos])
+                start = split_pos
             else:
-                result.append(sentence[start:end])
+                result.append(text[start:end])
                 break
 
         return result
 
-    def _group_lines_into_paragraphs(self, lines: List[str]) -> List[str]:
-        """将行组织成段（每段最多两行）"""
-        paragraphs = []
-        i = 0
-
-        while i < len(lines):
-            if i + 1 < len(lines):
-                # 两行组成一段
-                paragraph = lines[i] + '\n' + lines[i + 1]
-                paragraphs.append(paragraph)
-                i += 2
-            else:
-                # 最后一行单独成段
-                paragraphs.append(lines[i])
-                i += 1
-
-        return paragraphs
+    def _pair_lines(self, lines: List[str]) -> List[str]:
+        """将行两两配对成段，用换行符连接"""
+        return [
+            lines[i] + ('\n' + lines[i + 1] if i + 1 < len(lines) else '')
+            for i in range(0, len(lines), 2)
+        ]
