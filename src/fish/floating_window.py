@@ -1,6 +1,10 @@
+import logging
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QKeyEvent, QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
+
+# Set up module-specific logger
+logger = logging.getLogger(__name__)
 
 FOCUS_IN_STYLE = """
     QLabel {
@@ -33,9 +37,11 @@ LINE_NUMBER_STYLE = """
 class FloatingWindow(QWidget):
     def __init__(self, book_manager):
         super().__init__()
+        logger.info("Initializing FloatingWindow")
         self.book_manager = book_manager
         self.current_line = self.book_manager.get_current_progress()
         self.book_content = self.book_manager.get_book_content()
+        logger.info(f"Initialized window with {len(self.book_content)} lines of content")
 
         # Variables for dragging functionality
         self.is_dragging = False
@@ -55,6 +61,7 @@ class FloatingWindow(QWidget):
 
         self.init_ui()
         self.update_display()
+        logger.info("FloatingWindow initialized successfully")
 
     def init_ui(self):
         """初始化UI"""
@@ -114,7 +121,9 @@ class FloatingWindow(QWidget):
 
     def update_display(self):
         """更新显示内容"""
+        logger.debug(f"Updating display for line {self.current_line}")
         if not self.book_content:
+            logger.warning("No book content to display")
             self.content_label.setText("没有可显示的内容")
             self.line_number_label.setText("")
             return
@@ -123,6 +132,7 @@ class FloatingWindow(QWidget):
             # 获取实际行号
             actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
             line_content = self.book_content[self.current_line]
+            logger.debug(f"Displaying line {self.current_line} (actual: {actual_line_number}): {line_content[:50]}...")
             
             # 显示内容（不包含行号）
             self.content_label.setText(line_content)
@@ -136,9 +146,11 @@ class FloatingWindow(QWidget):
             self.book_manager.update_progress(self.current_line)
         elif self.book_content:
             # 超出范围时重置到开头或末尾
+            old_line = self.current_line
             self.current_line = max(0, min(self.current_line, len(self.book_content) - 1))
             actual_line_number = self.book_manager.get_actual_line_number(self.current_line)
             line_content = self.book_content[self.current_line]
+            logger.info(f"Line index out of range ({old_line}), adjusted to {self.current_line}")
             
             # 显示内容（不包含行号）
             self.content_label.setText(line_content)
@@ -182,17 +194,21 @@ class FloatingWindow(QWidget):
     def keyPressEvent(self, event: QKeyEvent):
         """按键事件处理"""
         key = event.key()
+        logger.debug(f"Key pressed: {event.key()}")
         
         # Handle numeric input when waiting for line number
         if self.waiting_for_line_number:
             if Qt.Key.Key_0 <= event.key() <= Qt.Key.Key_9:
                 self.line_number_input += event.text()
+                logger.debug(f"Line number input: {self.line_number_input}")
                 # Update display to show current input
                 self.content_label.setText(f"输入行号: {self.line_number_input}")
                 self.line_number_label.setText("")
             elif event.key() == Qt.Key.Key_Return:  # Enter key to confirm
+                logger.info(f"Confirming line number input: {self.line_number_input}")
                 self.jump_to_line()
             elif event.key() == Qt.Key.Key_Escape:  # Escape to cancel
+                logger.info("Cancelling line number input")
                 self.waiting_for_line_number = False
                 self.line_number_input = ""
                 self.update_display()
@@ -201,55 +217,77 @@ class FloatingWindow(QWidget):
             return
 
         if key == Qt.Key.Key_G:
+            logger.info("G key pressed - entering line number mode")
             # Start waiting for line number input
             self.waiting_for_line_number = True
             self.line_number_input = ""
             self.content_label.setText("输入行号：（然后按回车)")
             self.line_number_label.setText("")
         elif key == Qt.Key.Key_R:
+            logger.info("R key pressed - reselecting book")
             # Re-ask for the book to read
             self.reselect_book()
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_W):
+            logger.debug("Moving to previous line (Up/W key)")
             self.previous_line()
         elif key in (Qt.Key.Key_Down, Qt.Key.Key_S):
+            logger.debug("Moving to next line (Down/S key)")
             self.next_line()
         elif key == Qt.Key.Key_Q:
+            logger.info("Q key pressed - quitting application")
             QApplication.quit()
         else:
+            logger.debug(f"Unhandled key: {event.key()}")
             super().keyPressEvent(event)
 
     def previous_line(self):
         """显示上一行内容"""
+        logger.debug(f"Moving to previous line from current line {self.current_line}")
         if not self.book_content:
+            logger.warning("No book content to navigate")
             return
 
         new_line = self.current_line - 1
+        skipped_lines = 0
         while new_line >= 0 and not self.book_content[new_line].strip():
             new_line -= 1
+            skipped_lines += 1
 
         if new_line >= 0:
             self.current_line = new_line
+            logger.debug(f"Moved to previous line: {new_line} (skipped {skipped_lines} empty lines)")
             self.update_display()
+        else:
+            logger.info("Already at the beginning of the book")
 
     def next_line(self):
         """显示下一行内容"""
+        logger.debug(f"Moving to next line from current line {self.current_line}")
         if not self.book_content:
+            logger.warning("No book content to navigate")
             return
 
         new_line = self.current_line + 1
+        skipped_lines = 0
         while new_line < len(self.book_content) and not self.book_content[new_line].strip():
             new_line += 1
+            skipped_lines += 1
 
         if new_line < len(self.book_content):
             self.current_line = new_line
+            logger.debug(f"Moved to next line: {new_line} (skipped {skipped_lines} empty lines)")
             self.update_display()
+        else:
+            logger.info("Reached the end of the book")
 
     def mousePressEvent(self, event):
         """鼠标点击事件 - 设置焦点和开始拖拽"""
+        logger.debug(f"Mouse press event at {event.position()}, button: {event.button()}")
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_dragging = True
             # Calculate the position relative to the window
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            logger.debug(f"Starting drag with position: {self.drag_position}")
             event.accept()
         else:
             self.setFocus()
@@ -259,21 +297,26 @@ class FloatingWindow(QWidget):
         if self.is_dragging and event.buttons() == Qt.MouseButton.LeftButton:
             # Move the window to the new position
             new_pos = event.globalPosition().toPoint() - self.drag_position
+            logger.debug(f"Dragging window to position: {new_pos}")
             self.move(new_pos)
         event.accept()
 
     def mouseReleaseEvent(self, event):
         """鼠标释放事件 - 结束拖拽"""
         if event.button() == Qt.MouseButton.LeftButton:
+            if self.is_dragging:
+                logger.debug("Mouse drag ended")
             self.is_dragging = False
         event.accept()
 
     def focusInEvent(self, event):
         """获得焦点时的事件"""
+        logger.debug("Window gained focus")
         self.content_label.setStyleSheet(FOCUS_IN_STYLE)
 
     def focusOutEvent(self, event):
         """失去焦点时的事件"""
+        logger.debug("Window lost focus")
         self.content_label.setStyleSheet(FOCUS_OUT_STYLE)
 
     def resizeEvent(self, event):
@@ -283,11 +326,13 @@ class FloatingWindow(QWidget):
 
     def reselect_book(self):
         """重新选择要阅读的书籍"""
+        logger.info("Re-selecting book initiated by user")
         from PyQt6.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getOpenFileName(
             None, "选择文本文件", "", "Text Files (*.txt)"
         )
         if file_path:
+            logger.info(f"User selected new book: {file_path}")
             # Add the new book to bookshelf and set it as current
             self.book_manager.add_book(file_path)
             self.book_manager.set_current_book(file_path)
@@ -295,6 +340,9 @@ class FloatingWindow(QWidget):
             self.book_content = self.book_manager.get_book_content()
             self.current_line = self.book_manager.get_current_progress()
             self.update_display()
+            logger.info(f"Book changed successfully to: {file_path}")
+        else:
+            logger.info("User cancelled book re-selection")
 
     def check_topmost_status(self):
         """检查窗口是否为顶层窗口"""
