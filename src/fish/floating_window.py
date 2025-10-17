@@ -206,6 +206,9 @@ class FloatingWindow(QWidget):
             self.line_number_input = ""
             self.content_label.setText("输入行号：（然后按回车)")
             self.line_number_label.setText("")
+        elif key == Qt.Key.Key_R:
+            # Re-ask for the book to read
+            self.reselect_book()
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_W):
             self.previous_line()
         elif key in (Qt.Key.Key_Down, Qt.Key.Key_S):
@@ -277,6 +280,21 @@ class FloatingWindow(QWidget):
         """窗口大小改变时更新行号位置"""
         super().resizeEvent(event)
         self.update_line_number_position()
+
+    def reselect_book(self):
+        """重新选择要阅读的书籍"""
+        from PyQt6.QtWidgets import QFileDialog
+        file_path, _ = QFileDialog.getOpenFileName(
+            None, "选择文本文件", "", "Text Files (*.txt)"
+        )
+        if file_path:
+            # Add the new book to bookshelf and set it as current
+            self.book_manager.add_book(file_path)
+            self.book_manager.set_current_book(file_path)
+            # Update the UI with new content
+            self.book_content = self.book_manager.get_book_content()
+            self.current_line = self.book_manager.get_current_progress()
+            self.update_display()
 
     def check_topmost_status(self):
         """检查窗口是否为顶层窗口"""
