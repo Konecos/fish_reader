@@ -10,20 +10,21 @@ from .book_manager import BookManager
 
 def main():
     app = QApplication(sys.argv)
-
-    # 确保AppData目录存在
-    app_data_dir = Path(os.getenv('APPDATA')) / "fish"
-    app_data_dir.mkdir(exist_ok=True)
+    from .config import app_data_dir, config
+    from .theme_manager import apply_theme_to_app
+    
+    # Apply theme to the application
+    apply_theme_to_app(app)
     
     # 创建日志目录
     log_dir = app_data_dir / "log"
     log_dir.mkdir(exist_ok=True)
-    
+
     # 配置日志
     log_file = log_dir / "fish.log"
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s',
         handlers=[
             logging.FileHandler(log_file, encoding='utf-8'),
             logging.StreamHandler()  # Also log to console
@@ -74,6 +75,8 @@ def main():
     finally:
         # 程序退出时确保保存数据
         book_manager.save()
+        # 保存配置
+        config.save()
         logging.info("Application data saved and application terminated")
 
 
